@@ -1,0 +1,4 @@
+*.log
+docs
+coverage
+node_modules

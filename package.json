@@ -1,0 +1,45 @@
+{
+  "author": {
+    "name": "Mario Micklisch",
+    "email": "mario@favo.org"
+  },
+  "license": "MIT",
+  "name": "node-fastlane",
+  "description": "simple app handling utilities",
+  "version": "0.1.0",
+  "homepage": "http://favo.org",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:ifavo/node-fastlane.git"
+  },
+  "keywords": [
+    "fastlane",
+    "apps",
+    "ios",
+    "iphone",
+    "ipad",
+    "android"
+  ],
+  "engines": {
+    "node": ">=0.8.0"
+  },
+  "dependencies": {
+    "adm-zip": "^0.4.7",
+    "plist": "^1.2.0",
+    "q": "^1.4.1"
+  },
+  "devDependencies": {
+    "expect": "^1.12.2",
+    "istanbul": "latest",
+    "mocha": "latest",
+    "should": "latest"
+  },
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/ifavo/node-fastlane/issues"
+  },
+  "scripts": {
+    "test": "NODE_PATH=lib istanbul cover node_modules/mocha/bin/_mocha -- -R spec",
+    "docs": "jsduck ./src --output docs --title=node-fastlane --pretty-json"
+  }
+}

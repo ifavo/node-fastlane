@@ -1,0 +1,10 @@
+reporting:
+  print: summary
+  reports:
+    - html
+  dir: ./docs/coverage
+  watermarks:
+    statements: [50, 80]
+    lines: [50, 80]
+    functions: [50, 80]
+    branches: [40, 70]

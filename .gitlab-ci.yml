@@ -1,0 +1,23 @@
+before_script:
+  - npm config set cache /tmp/npmcache
+
+stages:
+  - build
+  - test
+
+install:
+  stage: build
+  script:
+    - npm install
+  tags:
+    - shell
+
+npmtest:
+  stage: test
+  script:
+    - npm install
+    - npm test
+  tags:
+    - shell
+    - mac
+    - fastlane

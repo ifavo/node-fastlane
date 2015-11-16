@@ -3,6 +3,7 @@ var plist = require('plist');
 var Q = require('q');
 var AdmZip = require('adm-zip');
 var fs = require('fs');
+var parseApk = require('apk-parser');
 
 /**
  * some little helper to handle everything regarding apps better
@@ -93,6 +94,21 @@ exports.loadIpaProfile = function (ipa) {
       }, deferred.reject);
 
     return deferred.promise;
+};
+
+/**
+* load data from an .apk file
+* @param {String} apk
+* @return {Promise}
+*/
+exports.loadApkProfile = function (apk) {
+   var deferred = Q.defer();
+
+   parseApk(apk, function (err, data) {
+     err ? deferred.reject(data) : deferred.resolve(data);
+   });
+
+   return deferred.promise;
 };
 
 /**

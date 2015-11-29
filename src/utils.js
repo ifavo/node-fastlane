@@ -3,6 +3,7 @@ var plist = require('plist');
 var Q = require('q');
 var AdmZip = require('adm-zip');
 var fs = require('fs');
+var parseApk = require('apk-parser');
 
 /**
  * some little helper to handle everything regarding apps better
@@ -96,6 +97,21 @@ exports.loadIpaProfile = function (ipa) {
 };
 
 /**
+* load data from an .apk file
+* @param {String} apk
+* @return {Promise}
+*/
+exports.loadApkProfile = function (apk) {
+   var deferred = Q.defer();
+
+   parseApk(apk, function (err, data) {
+     err ? deferred.reject(data) : deferred.resolve(data);
+   });
+
+   return deferred.promise;
+};
+
+/**
  * load plist profile from a mobile provisioning file
  * @param {String} filename
  * @return {Promise}
@@ -137,6 +153,86 @@ exports.unlockKeychain = function (keychain, password) {
 
 
     var process = childProcess.spawn('security', ['unlock-keychain', '-p', password, keychain]);
+
+    process.stdout.on('close', function (data) {
+        deferred.resolve();
+    });
+
+    process.stdout.on('data', function (data) {
+    });
+
+    process.stderr.on('data', function (data) {
+        deferred.reject(String(data));
+    });
+
+    return deferred.promise;
+};
+
+/**
+ * creates a new keychain
+ * @param {String} keychain filename
+ * @param {String} password
+ * @return {Promise}
+ */
+exports.createKeychain = function (keychain, password) {
+    var deferred = Q.defer();
+
+
+    var process = childProcess.spawn('security', ['create-keychain', '-p', password, keychain]);
+
+    process.stdout.on('close', function (data) {
+        deferred.resolve();
+    });
+
+    process.stdout.on('data', function (data) {
+    });
+
+    process.stderr.on('data', function (data) {
+        deferred.reject(String(data));
+    });
+
+    return deferred.promise;
+};
+
+/**
+ * deletes a keychain
+ * @param {String} keychain filename
+ * @return {Promise}
+ */
+exports.deleteKeychain = function (keychain) {
+    var deferred = Q.defer();
+
+
+    var process = childProcess.spawn('security', ['delete-keychain', keychain]);
+
+    process.stdout.on('close', function (data) {
+        deferred.resolve();
+    });
+
+    process.stdout.on('data', function (data) {
+    });
+
+    process.stderr.on('data', function (data) {
+        deferred.reject(String(data));
+    });
+
+    return deferred.promise;
+};
+
+
+/**
+ * import a certificate into a keychain
+ * @param {String} keychain filename
+ * @param {String} password
+ * @param {String} file
+ * @param {String} filePassword
+ * @return {Promise}
+ */
+exports.keychainImport = function (keychain, file, filePassword) {
+    var deferred = Q.defer();
+
+
+    var process = childProcess.spawn('security', ['import', file, '-k', keychain, '-P', filePassword, '-A']);
 
     process.stdout.on('close', function (data) {
         deferred.resolve();

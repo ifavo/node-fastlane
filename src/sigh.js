@@ -53,6 +53,18 @@ var Sigh = function () {
         return fastlane.run("sigh", args);
     };
     
+    
+    /**
+     * resign a binary
+     * @param {Object} data {{ipa: <IPA FILE>, profile: <MOBILEPROVISIONING FILE>, identity: <OPTIONAL IDENTITY NAME>}}
+     * @return {Promise}
+     */
+    self.resign = function (data) {
+        var args = ['resign', data.ipa, '-p', data.profile];
+        var helper = {identity: data.identity};
+        return fastlane.run("sigh", args, helper);
+    };
+
 };
 
 module.exports = Sigh;

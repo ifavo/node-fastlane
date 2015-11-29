@@ -29,3 +29,15 @@ Sigh.refresh()
     .catch(function (err) {
         console.log("ERROR", err);
     });
+
+Sigh.resign({
+        ipa: 'test.ipa',
+        profile: 'test.mobileprovision',
+        identity: 'iPhone Distribution: Company'
+    })
+    .then(function(data) {
+        console.log("OK", data);
+    })
+    .catch(function (err) {
+        console.log("ERROR", err);
+    });

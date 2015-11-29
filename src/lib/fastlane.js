@@ -34,9 +34,10 @@ var Fastlane = function () {
      * run any fastlane tool
      * @param {String} tool which tool to run
      * @param {Array} args optional
+     * @param {Array} argsHelper optional
      * @return {Promise}
      */
-    self.run = function (tool, args) {
+    self.run = function (tool, args, argsHelper) {
 
         var deferred = Q.defer();
         var pArgs = args || [];
@@ -53,9 +54,8 @@ var Fastlane = function () {
         var process = childProcess.spawn(binary, pArgs, {env: {"FASTLANE_USER": identity.user, "FASTLANE_PASSWORD": identity.password}});
 
         var response = '';
-        var hasError = false;
         process.stdout.on('close', function (data) {
-            hasError ? deferred.reject(response) : deferred.resolve(response);;
+            deferred.resolve(response);;
         });
 
         // mostly error handling
@@ -64,16 +64,29 @@ var Fastlane = function () {
             var lines = String(data).split("\n");
             var line;
             while ( line = lines.shift() ) {
-                if ( line.indexOf('seem to be wrong') >= 0 ) {
+                if ( line.indexOf('seem to be wrong') !== -1 ) {
                     deferred.reject(line);
                     process.kill();
                     return;
                 }
 
                 // password re-enter request
-                if ( line.indexOf('Do you want to re-enter your password?') >= 0 ) {
+                if ( line.indexOf('Do you want to re-enter your password?') !== -1 ) {
                     deferred.reject(line);
                     process.kill();
+                    return;
+                }
+
+                // asking for an identity?
+                if ( line.indexOf('Available identities:') !== -1 ) {
+                    // argsHelper provides an identity?
+                    if ( argsHelper && argsHelper.identity ) {
+                        process.stdin.write(argsHelper.identity + "\n");
+                    }
+                    else {
+                        deferred.reject("Identity was ambiguous, please provide it as a parameter");
+                        process.kill();
+                    }
                     return;
                 }
             }
@@ -81,9 +94,6 @@ var Fastlane = function () {
 
         process.stderr.on('data', function (data) {
             response += data;
-            hasError = true;
-            process.stdin.pause();
-            process.kill();
         });
 
         return deferred.promise;

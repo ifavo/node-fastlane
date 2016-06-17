@@ -56,11 +56,20 @@ var Sigh = function() {
 
   /**
    * resign a binary
-   * @param {Object} data {{ipa: <IPA FILE>, profile: <MOBILEPROVISIONING FILE>, identity: <OPTIONAL IDENTITY NAME>}}
+   * @param {Object} data {{ipa: <IPA FILE>, bundleid: <APP BUNDLEID>, profiles: {<MOBILEPROVISIONING BUNDLEID>: <MOBILEPROVISIONING FILE>, ...}, identity: <OPTIONAL IDENTITY NAME>}}
    * @return {Promise}
    */
   self.resign = function(data) {
-    var args = ['resign', data.ipa, '-p', data.profile];
+    var args = ['resign', data.ipa];
+
+    // add provisioning profile flag for all given profiles
+    for (var bundleid in data.profiles) {
+      args = args.concat(['--provisioning_profile', bundleid + '=' + data.profiles[bundleid]]);
+    }
+
+    // flag for bundleid changing
+    args = args.concat(['--new_bundle_id', data.bundleid]);
+
     var helper = {
       identity: data.identity
     };

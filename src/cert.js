@@ -18,34 +18,34 @@
  * @class Cert
  * @requires Fastlane
  */
-var Cert = function () {
-    var self = this;
+var Cert = function() {
+  var self = this;
 
-    var Fastlane = require('./lib/fastlane');
-    fastlane = new Fastlane();
+  var Fastlane = require('./lib/fastlane');
+  fastlane = new Fastlane();
 
-    // make some fastlane functions public
-    /**
-     * @method setIdentity
-     * @inheritdoc faab.Fastlane#setIdentity
-     */
-    self.setIdentity = fastlane.setIdentity;
+  // make some fastlane functions public
+  /**
+   * @method setIdentity
+   * @inheritdoc faab.Fastlane#setIdentity
+   */
+  self.setIdentity = fastlane.setIdentity;
 
-    /**
-     * @method getIdentity
-     * @inheritdoc faab.Fastlane#getIdentity
-     */
-    self.getIdentity = fastlane.getIdentity;
+  /**
+   * @method getIdentity
+   * @inheritdoc faab.Fastlane#getIdentity
+   */
+  self.getIdentity = fastlane.getIdentity;
 
-    /**
-     * refresh certificates
-     * @param {Array} args optional
-     * @return {Promise}
-     */
-    self.refresh = function (args) {
-        return fastlane.run("cert", args);
-    };
-    
+  /**
+   * refresh certificates
+   * @param {Array} args optional
+   * @return {Promise}
+   */
+  self.refresh = function(args) {
+    return fastlane.run("cert", args);
+  };
+
 };
 
 

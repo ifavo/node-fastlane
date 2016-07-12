@@ -33,10 +33,10 @@ exports.loadIpaFile = function(ipa, filename, outputFile) {
   var deferred = Q.defer();
 
   setTimeout(function() {
-    var hasFile = false;
     try {
       var zip = new AdmZip(ipa);
       var zipEntries = zip.getEntries();
+      var hasFile = false;
       zipEntries.forEach(function(zipEntry) {
         if (hasFile) {
           return;
@@ -86,7 +86,7 @@ exports.loadIpaProfile = function(ipa) {
         var result = plist.parse(String(profile));
 
         // clean up
-        fs.unlinkSync(tmpFile);
+        fs.unlinkSync(tmpFile)
 
         // return it
         deferred.resolve(result);
@@ -141,6 +141,26 @@ exports.loadProfile = function(filename) {
 
   return deferred.promise;
 };
+
+/**
+ * changes the bundleid in all Info.plist-files inside an IPA file
+ * @param  {Object} params {filepath: STRING, oldBundleId: STRING, newBundleId: STRING, tempFolderPath: STRING}
+ * @return {Promise}
+ */
+exports.changeBundleId = function(params) {
+  var deferred = Q.defer();
+
+  childProcess.execFile(__dirname + "/lib/change_bundle_id.sh", [params.filepath, params.newBundleId, params.tempFolderPath], {
+    maxBuffer: 1024 * 1024,
+  }, function(err, out) {
+    if (err) {
+      return deferred.reject(err);
+    }
+    deferred.resolve(true);
+  });
+
+  return deferred.promise;
+}
 
 /**
  * tries to unlock the given keychain

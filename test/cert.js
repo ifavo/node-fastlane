@@ -12,7 +12,7 @@ describe('cert Tests', function() {
 
   after(function(done) {
     done();
-  });
+  })
 
   it('should allow to get/setIdentity()', function(done) {
     var identity = Cert.getIdentity();

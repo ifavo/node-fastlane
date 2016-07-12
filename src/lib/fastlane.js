@@ -58,9 +58,28 @@ var Fastlane = function() {
       }
     });
 
+    console.log('fastlane started: ', binary, pArgs);
+
+    console.log('fastlane command: ', binary + ' ' + pArgs.join(' '));
+
     var response = '';
     process.stdout.on('close', function(data) {
       deferred.resolve(response);
+    });
+
+    process.stdout.on('exit', function(data) {
+      console.log("fastlane exit: ", data);
+      deferred.resolve();
+    });
+
+    process.stdout.on('close', function(data) {
+      console.log("fastlane close: ", data);
+      deferred.resolve();
+    });
+
+    process.stdout.on('error', function(data) {
+      console.log("fastlane error: ", data);
+      deferred.reject(data);
     });
 
     // mostly error handling
@@ -69,6 +88,7 @@ var Fastlane = function() {
       var lines = String(data).split("\n");
       var line;
       while (line = lines.shift()) {
+        console.log(line);
         if (line.indexOf('seem to be wrong') !== -1) {
           deferred.reject(line);
           process.kill();
@@ -98,7 +118,7 @@ var Fastlane = function() {
     });
 
     process.stderr.on('data', function(data) {
-      response += data;
+      response += 'error: ' + data;
     });
 
     return deferred.promise;

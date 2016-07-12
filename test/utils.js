@@ -9,7 +9,7 @@ describe('utils Tests', function() {
 
   after(function(done) {
     done();
-  });
+  })
   /*
   it('should load profile from *.mobileprovision file', function (done) {
     nodeFastlane.Utils.loadProfile("test/Test.mobileprovision")

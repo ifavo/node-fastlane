@@ -62,13 +62,16 @@ var Sigh = function() {
   self.resign = function(data) {
     var args = ['resign', data.ipa];
 
-    // add provisioning profile flag for all given profiles
-    for (var bundleid in data.profiles) {
-      args = args.concat(['--provisioning_profile', bundleid + '=' + data.profiles[bundleid]]);
-    }
-
-    // flag for bundleid changing
+    // flag for bundleid changing (@CHECK as of 12.07.16 this does not handle changing extension or watchapp bundleid)
     args = args.concat(['--new_bundle_id', data.bundleid]);
+
+    // add provisioning profile flag for all given profiles ( we have to do is with decreasing length of bundleid )
+    var bundleids = Object.keys(data.profiles)
+      .sort()
+      .reverse()
+      .forEach(function(bundleid) {
+        args = args.concat(['--provisioning_profile', bundleid + '=' + data.profiles[bundleid]]);
+      });
 
     var helper = {
       identity: data.identity

@@ -12,7 +12,7 @@ describe('sigh Tests', function() {
 
   after(function(done) {
     done();
-  });
+  })
 
   it('should allow to get/setIdentity()', function(done) {
     var identity = Sigh.getIdentity();

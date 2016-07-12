@@ -19,51 +19,65 @@
  * @class Sigh
  * @requires Fastlane
  */
-var Sigh = function () {
-    var self = this;
+var Sigh = function() {
+  var self = this;
 
-    var Fastlane = require('./lib/fastlane');
-    fastlane = new Fastlane();
+  var Fastlane = require('./lib/fastlane');
+  fastlane = new Fastlane();
 
-    // make some fastlane functions public
-    /**
-     * @method setIdentity
-     * @inheritdoc faab.Fastlane#setIdentity
-     */
-    self.setIdentity = fastlane.setIdentity;
+  // make some fastlane functions public
+  /**
+   * @method setIdentity
+   * @inheritdoc faab.Fastlane#setIdentity
+   */
+  self.setIdentity = fastlane.setIdentity;
 
-    /**
-     * @method getIdentity
-     * @inheritdoc faab.Fastlane#getIdentity
-     */
-    self.getIdentity = fastlane.getIdentity;
+  /**
+   * @method getIdentity
+   * @inheritdoc faab.Fastlane#getIdentity
+   */
+  self.getIdentity = fastlane.getIdentity;
 
-    /**
-     * refresh provisioning profiles
-     * @param {Array} args optional
-     * @return {Promise}
-     */
-    self.refresh = function (args) {
-        if ( !args ) {
-            args = ["download_all"];
-        }
-        else {
-            args.unshift("download_all");
-        }
-        return fastlane.run("sigh", args);
+  /**
+   * refresh provisioning profiles
+   * @param {Array} args optional
+   * @return {Promise}
+   */
+  self.refresh = function(args) {
+    if (!args) {
+      args = ["download_all"];
+    }
+    else {
+      args.unshift("download_all");
+    }
+    return fastlane.run("sigh", args);
+  };
+
+
+  /**
+   * resign a binary
+   * @param {Object} data {{ipa: <IPA FILE>, bundleid: <APP BUNDLEID>, profiles: {<MOBILEPROVISIONING BUNDLEID>: <MOBILEPROVISIONING FILE>, ...}, identity: <OPTIONAL IDENTITY NAME>}}
+   * @return {Promise}
+   */
+  self.resign = function(data) {
+    var args = ['resign', data.ipa];
+
+    // flag for bundleid changing (@CHECK as of 12.07.16 this does not handle changing extension or watchapp bundleid)
+    args = args.concat(['--new_bundle_id', data.bundleid]);
+
+    // add provisioning profile flag for all given profiles ( we have to do is with decreasing length of bundleid )
+    var bundleids = Object.keys(data.profiles)
+      .sort()
+      .reverse()
+      .forEach(function(bundleid) {
+        args = args.concat(['--provisioning_profile', bundleid + '=' + data.profiles[bundleid]]);
+      });
+
+    var helper = {
+      identity: data.identity
     };
-    
-    
-    /**
-     * resign a binary
-     * @param {Object} data {{ipa: <IPA FILE>, profile: <MOBILEPROVISIONING FILE>, identity: <OPTIONAL IDENTITY NAME>}}
-     * @return {Promise}
-     */
-    self.resign = function (data) {
-        var args = ['resign', data.ipa, '-p', data.profile];
-        var helper = {identity: data.identity};
-        return fastlane.run("sigh", args, helper);
-    };
+    return fastlane.run("sigh", args, helper);
+  };
 
 };
 

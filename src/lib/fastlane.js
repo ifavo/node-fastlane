@@ -63,23 +63,31 @@ var Fastlane = function() {
     console.log('fastlane command: ', binary + ' ' + pArgs.join(' '));
 
     var response = '';
-    process.stdout.on('close', function(data) {
-      deferred.resolve(response);
-    });
+    var error = '';
 
     process.stdout.on('exit', function(data) {
       console.log("fastlane exit: ", data);
+      if (error) {
+        deferred.reject(data);
+        return;
+      }
       deferred.resolve();
     });
 
     process.stdout.on('close', function(data) {
       console.log("fastlane close: ", data);
-      deferred.resolve();
+      if (error) {
+        deferred.reject(data);
+        return;
+      }
+      deferred.resolve(response);
     });
 
     process.stdout.on('error', function(data) {
-      console.log("fastlane error: ", data);
-      deferred.reject(data);
+      if (String(data).indexOf('SecPolicySetValue: One or more parameters passed to a function were not valid') !== -1) {
+        return;
+      }
+      error += String(data) + '\n';
     });
 
     // mostly error handling

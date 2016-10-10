@@ -64,6 +64,9 @@ var Sigh = function() {
 
     // flag for bundleid changing (@CHECK as of 12.07.16 this does not handle changing extension or watchapp bundleid)
     args = args.concat(['--new_bundle_id', data.bundleid]);
+    
+    // flag for identity selection
+    args = args.concat(['--signing_identity', data.identity]);
 
     // add provisioning profile flag for all given profiles ( we have to do is with decreasing length of bundleid )
     var bundleids = Object.keys(data.profiles)
@@ -72,11 +75,7 @@ var Sigh = function() {
       .forEach(function(bundleid) {
         args = args.concat(['--provisioning_profile', bundleid + '=' + data.profiles[bundleid]]);
       });
-
-    var helper = {
-      identity: data.identity
-    };
-    return fastlane.run("sigh", args, helper);
+    return fastlane.run("sigh", args);
   };
 
 };

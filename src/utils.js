@@ -136,6 +136,10 @@ exports.loadProfile = function(filename) {
   });
 
   process.stderr.on('data', function(data) {
+    // workaround for macOS (sierra 10.12) error message
+    if (String(data).indexOf('SecPolicySetValue: One or more parameters passed to a function were not valid') !== -1) {
+      return;
+    }
     deferred.reject(String(data));
   });
 

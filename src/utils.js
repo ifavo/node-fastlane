@@ -22,93 +22,93 @@ var parseApk = require('apk-parser');
  */
 
 
- /**
+/**
  * load a file from an .ipa file
  * this is not exact because it uses "indexOf", so be careful about the filename param
  * @param {String} ipa
  * @param {String} filename
  * @return {Promise}
  */
-exports.loadIpaFile = function (ipa, filename, outputFile) {
-    var deferred = Q.defer();
+exports.loadIpaFile = function(ipa, filename, outputFile) {
+  var deferred = Q.defer();
 
-    setTimeout(function () {
-        try {
-            var zip = new AdmZip(ipa);
-            var zipEntries = zip.getEntries();
-            var hasFile = false;
-            zipEntries.forEach(function(zipEntry) {
-                if (hasFile) {
-                    return;
-                }
-
-                if (zipEntry.entryName.indexOf(filename) !== -1) {
-        
-                    // unzip to temp. file
-                    fs.writeFileSync(outputFile, zip.readFile(zipEntry));
-                    deferred.resolve();
-                    hasFile = true;
-                }
-            });
-
-        }
-        catch (err) {
-            deferred.reject(err);
+  setTimeout(function() {
+    try {
+      var zip = new AdmZip(ipa);
+      var zipEntries = zip.getEntries();
+      var hasFile = false;
+      zipEntries.forEach(function(zipEntry) {
+        if (hasFile) {
+          return;
         }
 
-        if ( !hasFile ) {
-            deferred.reject("file not found");
-        }
-    }, 0);
+        if (zipEntry.entryName.indexOf(filename) !== -1) {
 
-    return deferred.promise;
+          // unzip to temp. file
+          fs.writeFileSync(outputFile, zip.readFile(zipEntry));
+          deferred.resolve();
+          hasFile = true;
+        }
+      });
+
+    }
+    catch (err) {
+      deferred.reject(err);
+    }
+
+    if (!hasFile) {
+      deferred.reject("file not found");
+    }
+  }, 0);
+
+  return deferred.promise;
 };
 
- /**
+/**
  * load data from an .ipa file
  * @param {String} ipa
  * @return {Promise}
  */
-exports.loadIpaProfile = function (ipa) {
-    var deferred = Q.defer();
+exports.loadIpaProfile = function(ipa) {
+  var deferred = Q.defer();
 
-    var tmpFile = ipa + '-temp.plist';
-    exports.loadIpaFile(ipa, 'app/Info.plist', tmpFile)
-      .then(function () {
+  var tmpFile = ipa + '-temp.plist';
+  exports.loadIpaFile(ipa, 'app/Info.plist', tmpFile)
+    .then(function() {
 
-            // convert to readable text xml
-            var process = childProcess.spawn('plutil', ['-convert', 'xml1', tmpFile]);
-            process.stdout.on('close', function (data) {
-                // read converted plist
-                var profile = fs.readFileSync(tmpFile);
-        
-                // parse it
-                var result = plist.parse(String(profile));
+      // convert to readable text xml
+      var process = childProcess.spawn('plutil', ['-convert', 'xml1', tmpFile]);
+      process.stdout.on('close', function(data) {
+        // read converted plist
+        var profile = fs.readFileSync(tmpFile);
 
-                // clean up
-                fs.unlinkSync(tmpFile)
+        // parse it
+        var result = plist.parse(String(profile));
 
-                // return it
-                deferred.resolve(result);
-            });
-      }, deferred.reject);
+        // clean up
+        fs.unlinkSync(tmpFile)
 
-    return deferred.promise;
+        // return it
+        deferred.resolve(result);
+      });
+    }, deferred.reject);
+
+  return deferred.promise;
 };
 
 /**
-* load data from an .apk file
-* @param {String} apk
-* @return {Promise}
-*/
-exports.loadApkProfile = function (apk) {
-   var deferred = Q.defer();
+ * load data from an .apk file
+ * @param {String} apk
+ * @return {Promise}
+ */
+exports.loadApkProfile = function(apk) {
+  var deferred = Q.defer();
 
-   parseApk(apk, function (err, data) {
-     err ? deferred.reject(data) : deferred.resolve(data);
-   });
+  parseApk(apk, function(err, data) {
+    err ? deferred.reject(data) : deferred.resolve(data);
+  });
 
-   return deferred.promise;
+  return deferred.promise;
 };
 
 /**
@@ -116,31 +116,55 @@ exports.loadApkProfile = function (apk) {
  * @param {String} filename
  * @return {Promise}
  */
-exports.loadProfile = function (filename) {
-    var deferred = Q.defer();
-    var process = childProcess.spawn('security', ['cms', '-D', '-i', filename]);
+exports.loadProfile = function(filename) {
+  var deferred = Q.defer();
+  var process = childProcess.spawn('security', ['cms', '-D', '-i', filename]);
 
-    var profile = '';
-    process.stdout.on('close', function (data) {
-        if ( profile ) {
-            var result = plist.parse(profile);
-            deferred.resolve(result);
-        }
-        else {
-            deferred.reject("could not extract profile");
-        }
-    });
+  var profile = '';
+  process.stdout.on('close', function(data) {
+    if (profile) {
+      var result = plist.parse(profile);
+      deferred.resolve(result);
+    }
+    else {
+      deferred.reject("could not extract profile");
+    }
+  });
 
-    process.stdout.on('data', function (data) {
-        profile += String(data);
-    });
+  process.stdout.on('data', function(data) {
+    profile += String(data);
+  });
 
-    process.stderr.on('data', function (data) {
-        deferred.reject(String(data));
-    });
+  process.stderr.on('data', function(data) {
+    // workaround for macOS (sierra 10.12) error message
+    if (String(data).indexOf('SecPolicySetValue: One or more parameters passed to a function were not valid') !== -1) {
+      return;
+    }
+    deferred.reject(String(data));
+  });
 
-    return deferred.promise;
+  return deferred.promise;
 };
+
+/**
+ * changes the bundleid in all Info.plist-files inside an IPA file
+ * @param  {Object} params {filepath: STRING, oldBundleId: STRING, newBundleId: STRING, tempFolderPath: STRING}
+ * @return {Promise}
+ */
+exports.changeBundleId = function(params) {
+  var deferred = Q.defer();
+
+  childProcess.execFile(__dirname + "/lib/change_bundle_id.sh", [params.filepath, params.newBundleId, params.tempFolderPath], {
+    maxBuffer: 1024 * 1024,
+  }, function(err, out) {
+    if (err) {
+      return deferred.reject(err);
+    }
+    deferred.resolve(true);
+  });
+
+  return deferred.promise;
+}
 
 /**
  * tries to unlock the given keychain
@@ -148,24 +172,23 @@ exports.loadProfile = function (filename) {
  * @param {String} password
  * @return {Promise}
  */
-exports.unlockKeychain = function (keychain, password) {
-    var deferred = Q.defer();
+exports.unlockKeychain = function(keychain, password) {
+  var deferred = Q.defer();
 
 
-    var process = childProcess.spawn('security', ['unlock-keychain', '-p', password, keychain]);
+  var process = childProcess.spawn('security', ['unlock-keychain', '-p', password, keychain]);
 
-    process.stdout.on('close', function (data) {
-        deferred.resolve();
-    });
+  process.stdout.on('close', function(data) {
+    deferred.resolve();
+  });
 
-    process.stdout.on('data', function (data) {
-    });
+  process.stdout.on('data', function(data) {});
 
-    process.stderr.on('data', function (data) {
-        deferred.reject(String(data));
-    });
+  process.stderr.on('data', function(data) {
+    deferred.reject(String(data));
+  });
 
-    return deferred.promise;
+  return deferred.promise;
 };
 
 /**
@@ -174,24 +197,23 @@ exports.unlockKeychain = function (keychain, password) {
  * @param {String} password
  * @return {Promise}
  */
-exports.createKeychain = function (keychain, password) {
-    var deferred = Q.defer();
+exports.createKeychain = function(keychain, password) {
+  var deferred = Q.defer();
 
 
-    var process = childProcess.spawn('security', ['create-keychain', '-p', password, keychain]);
+  var process = childProcess.spawn('security', ['create-keychain', '-p', password, keychain]);
 
-    process.stdout.on('close', function (data) {
-        deferred.resolve();
-    });
+  process.stdout.on('close', function(data) {
+    deferred.resolve();
+  });
 
-    process.stdout.on('data', function (data) {
-    });
+  process.stdout.on('data', function(data) {});
 
-    process.stderr.on('data', function (data) {
-        deferred.reject(String(data));
-    });
+  process.stderr.on('data', function(data) {
+    deferred.reject(String(data));
+  });
 
-    return deferred.promise;
+  return deferred.promise;
 };
 
 /**
@@ -199,24 +221,23 @@ exports.createKeychain = function (keychain, password) {
  * @param {String} keychain filename
  * @return {Promise}
  */
-exports.deleteKeychain = function (keychain) {
-    var deferred = Q.defer();
+exports.deleteKeychain = function(keychain) {
+  var deferred = Q.defer();
 
 
-    var process = childProcess.spawn('security', ['delete-keychain', keychain]);
+  var process = childProcess.spawn('security', ['delete-keychain', keychain]);
 
-    process.stdout.on('close', function (data) {
-        deferred.resolve();
-    });
+  process.stdout.on('close', function(data) {
+    deferred.resolve();
+  });
 
-    process.stdout.on('data', function (data) {
-    });
+  process.stdout.on('data', function(data) {});
 
-    process.stderr.on('data', function (data) {
-        deferred.reject(String(data));
-    });
+  process.stderr.on('data', function(data) {
+    deferred.reject(String(data));
+  });
 
-    return deferred.promise;
+  return deferred.promise;
 };
 
 
@@ -228,22 +249,21 @@ exports.deleteKeychain = function (keychain) {
  * @param {String} filePassword
  * @return {Promise}
  */
-exports.keychainImport = function (keychain, file, filePassword) {
-    var deferred = Q.defer();
+exports.keychainImport = function(keychain, file, filePassword) {
+  var deferred = Q.defer();
 
 
-    var process = childProcess.spawn('security', ['import', file, '-k', keychain, '-P', filePassword, '-A']);
+  var process = childProcess.spawn('security', ['import', file, '-k', keychain, '-P', filePassword, '-A']);
 
-    process.stdout.on('close', function (data) {
-        deferred.resolve();
-    });
+  process.stdout.on('close', function(data) {
+    deferred.resolve();
+  });
 
-    process.stdout.on('data', function (data) {
-    });
+  process.stdout.on('data', function(data) {});
 
-    process.stderr.on('data', function (data) {
-        deferred.reject(String(data));
-    });
+  process.stderr.on('data', function(data) {
+    deferred.reject(String(data));
+  });
 
-    return deferred.promise;
+  return deferred.promise;
 };

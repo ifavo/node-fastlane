@@ -43,7 +43,7 @@ var Fastlane = function() {
     var pArgs = args || [];
 
     if (pArgs.indexOf('-o') == -1 && pArgs.indexOf('--output-path') == -1) {
-      pArgs.push('-o', 'cache');
+      pArgs.concat(['-o', 'cache']);
     }
 
     var binary = locateBinary(tool);
@@ -51,22 +51,23 @@ var Fastlane = function() {
       deferred.reject(tool + " not installed");
       return deferred.promise;
     }
-    var process = childProcess.spawn(binary, pArgs, {
+    
+    var runtime = {
       env: {
-        "FASTLANE_USER": identity.user,
-        "FASTLANE_PASSWORD": identity.password
+        FASTLANE_USER: identity.user,
+        FASTLANE_PASSWORD: identity.password,
       }
-    });
+    };
+    
+    var spawnedProcess = childProcess.spawn(binary, pArgs, runtime);
 
     console.log('fastlane started: ', binary, pArgs);
-
     console.log('fastlane command: ', binary + ' ' + pArgs.join(' '));
 
     var response = '';
     var error = '';
 
-    process.stdout.on('exit', function(data) {
-      console.log("fastlane exit: ", data);
+    spawnedProcess.stdout.on('exit', function(data) {
       if (error) {
         deferred.reject(data);
         return;
@@ -74,8 +75,7 @@ var Fastlane = function() {
       deferred.resolve();
     });
 
-    process.stdout.on('close', function(data) {
-      console.log("fastlane close: ", data);
+    spawnedProcess.stdout.on('close', function(data) {
       if (error) {
         deferred.reject(data);
         return;
@@ -83,7 +83,7 @@ var Fastlane = function() {
       deferred.resolve(response);
     });
 
-    process.stdout.on('error', function(data) {
+    spawnedProcess.stdout.on('error', function(data) {
       if (String(data).indexOf('SecPolicySetValue: One or more parameters passed to a function were not valid') !== -1) {
         return;
       }
@@ -91,7 +91,7 @@ var Fastlane = function() {
     });
 
     // mostly error handling
-    process.stdout.on('data', function(data) {
+    spawnedProcess.stdout.on('data', function(data) {
       response += data;
       var lines = String(data).split("\n");
       var line;
@@ -99,14 +99,14 @@ var Fastlane = function() {
         console.log(line);
         if (line.indexOf('seem to be wrong') !== -1) {
           deferred.reject(line);
-          process.kill();
+          spawnedProcess.kill();
           return;
         }
 
         // password re-enter request
         if (line.indexOf('Do you want to re-enter your password?') !== -1) {
           deferred.reject(line);
-          process.kill();
+          spawnedProcess.kill();
           return;
         }
 
@@ -114,18 +114,18 @@ var Fastlane = function() {
         if (line.indexOf('Available identities:') !== -1) {
           // argsHelper provides an identity?
           if (argsHelper && argsHelper.identity) {
-            process.stdin.write(argsHelper.identity + "\n");
+            spawnedProcess.stdin.write(argsHelper.identity + "\n");
           }
           else {
             deferred.reject("Identity was ambiguous, please provide it as a parameter");
-            process.kill();
+            spawnedProcess.kill();
           }
           return;
         }
       }
     });
 
-    process.stderr.on('data', function(data) {
+    spawnedProcess.stderr.on('data', function(data) {
       response += 'error: ' + data;
     });
 

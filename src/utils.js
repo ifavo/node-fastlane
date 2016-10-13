@@ -164,7 +164,7 @@ exports.changeBundleId = function(params) {
   });
 
   return deferred.promise;
-}
+};
 
 /**
  * tries to unlock the given keychain
@@ -240,7 +240,6 @@ exports.deleteKeychain = function(keychain) {
   return deferred.promise;
 };
 
-
 /**
  * import a certificate into a keychain
  * @param {String} keychain filename
@@ -260,6 +259,42 @@ exports.keychainImport = function(keychain, file, filePassword) {
   });
 
   process.stdout.on('data', function(data) {});
+
+  process.stderr.on('data', function(data) {
+    deferred.reject(String(data));
+  });
+
+  return deferred.promise;
+};
+
+/**
+ * get valid identities from a given keychain
+ * @param {String} keychain filename
+ * @return {Promise} -> [{sha1: "9CBE26072A313C9DC3D924B8468B7FBFA4A2AXXX", name: "iPhone Distribution: Some Company"}]
+ */
+exports.keychainIdentities = function(keychain) {
+  var deferred = Q.defer();
+
+  var process = childProcess.spawn('security', ['find-identity', '-v', '-p', 'codesigning', keychain]);
+  var output = '';
+  process.stdout.on('close', function(data) {
+    var identities = output.split('\n')
+      .filter(function(elem) {
+        return elem.indexOf('"') != -1;
+      })
+      .map(function(elem) {
+        var matches = elem.match(/^\s*\d+\)\s*(\w+)[\s"]*([^"]+)/);
+        return {
+          sha1: matches[1],
+          name: matches[2],
+        };
+      });
+    deferred.resolve(identities);
+  });
+
+  process.stdout.on('data', function(data) {
+    output += String(data);
+  });
 
   process.stderr.on('data', function(data) {
     deferred.reject(String(data));
